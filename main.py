@@ -1,11 +1,13 @@
 import sys
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtBluetooth
 
 
 class RoboInterface(QtWidgets.QWidget):
 
     def __init__(self, *args, **kwargs):
         super(RoboInterface, self).__init__(*args, **kwargs)
+
+        self.bluetooth_devices = {}
 
         self.setLayout(QtWidgets.QVBoxLayout())
 
@@ -31,11 +33,22 @@ class RoboInterface(QtWidgets.QWidget):
 
     def initController(self):
 
+        self.find_devices = QtWidgets.QPushButton(text="Start discovering")
+        self.find_devices.clicked.connect(self.discoverDevices)
+
+        self.start_connection_btn = QtWidgets.QPushButton(text="Start connection")
+        self.start_connection_btn.clicked.connect(self.connectDevice)
+        self.connection_status_lbl = QtWidgets.QLabel()
+
         self.blue_combo = QtWidgets.QComboBox()
 
         self.servo1_spin = QtWidgets.QSpinBox()
         self.servo2_spin = QtWidgets.QSpinBox()
         self.servo3_spin = QtWidgets.QSpinBox()
+
+        self.servo1_spin.setRange(0, 180)
+        self.servo2_spin.setRange(0, 180)
+        self.servo3_spin.setRange(0, 180)
 
         self.base_controller  = QtWidgets.QDial()
         self.dial_lbl = QtWidgets.QLabel(text="0")
@@ -44,7 +57,12 @@ class RoboInterface(QtWidgets.QWidget):
         self.base_controller.setRange(0, 360)
 
         self.controller_layout.addWidget(QtWidgets.QLabel("Controller", alignment=QtCore.Qt.AlignCenter))
+
+        self.controller_layout.addRow(self.find_devices)
         self.controller_layout.addRow("Bluetooth connect", self.blue_combo)
+
+        self.controller_layout.addWidget(self.connection_status_lbl)
+        self.controller_layout.addWidget(self.start_connection_btn)
 
         self.controller_layout.addRow("Servo1", self.servo1_spin)
         self.controller_layout.addRow("Servo2", self.servo2_spin)
@@ -65,6 +83,10 @@ class RoboInterface(QtWidgets.QWidget):
         self.scroll_area.setWidgetResizable(True)
 
         self.servo_combo = QtWidgets.QComboBox()
+        self.servo_combo.setEditable(False)
+        self.servo_combo.addItems(["Base controller", "Servo1", "Servo2", "Servo3"])
+        self.servo_combo.currentTextChanged.connect(self.changeSpinRange)
+
         self.angle_spin = QtWidgets.QSpinBox()
         self.add_btn = QtWidgets.QPushButton(text="Add")
         self.add_btn.clicked.connect(self.addkey)
@@ -81,6 +103,68 @@ class RoboInterface(QtWidgets.QWidget):
 
     def addkey(self):
         self.scroll_layout.addWidget(SequenceLabel("SAMPLE"))
+
+    def changeSpinRange(self, text):
+
+        if text == "Base controller":
+            self.angle_spin.setRange(0, 360)
+
+        elif text in ["Servo1", "Servo2", "Servo3"]:
+            self.angle_spin.setRange(0, 180)
+
+    def discoverDevices(self):
+
+        def fill_items(device: QtBluetooth.QBluetoothDeviceInfo):
+            self.bluetooth_devices.update({device.name(): device})
+            self.blue_combo.addItem(device.name())
+
+        self.bluetooth_devices.clear()
+        self.blue_combo.clear()
+        blue = QtBluetooth.QBluetoothDeviceDiscoveryAgent(self)  # passing parent is important
+        blue.deviceDiscovered.connect(fill_items)
+        blue.start()
+
+    def connectDevice(self):
+
+        if self.blue_combo.currentText() == "":
+            return
+
+        def state_change(state):
+            status = ""
+            if state == QtBluetooth.QBluetoothSocket.ConnectingState:
+                status = "Connecting..."
+
+            elif state == QtBluetooth.QBluetoothSocket.ConnectedState:
+                status = "Connected"
+
+            elif state == QtBluetooth.QBluetoothSocket.UnconnectedState:
+                status = "Disconnected"
+
+            self.connection_status_lbl.setText(status)
+
+        self.socket = QtBluetooth.QBluetoothSocket(QtBluetooth.QBluetoothServiceInfo.RfcommProtocol, parent=self)
+        self.socket.stateChanged.connect(state_change)
+
+        device_info = self.bluetooth_devices[self.blue_combo.currentText()]
+
+        self.socket.connectToService(device_info.address(), device_info.deviceUuid())
+
+
+class Instructions(QtCore.QThread):
+
+    completedInstruction = QtCore.PYQT_SIGNAL()
+
+    def __init__(self, socket, *args, **kwargs):
+        super(Instructions, self).__init__(*args, **kwargs)
+
+        self.socket = socket
+
+    def run(self) -> None:
+        pass
+
+
+    def setInstructions(self, instruction):
+        pass
 
 
 class SequenceLabel(QtWidgets.QWidget):

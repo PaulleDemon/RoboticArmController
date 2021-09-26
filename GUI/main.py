@@ -8,6 +8,8 @@ class RoboInterface(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(RoboInterface, self).__init__(*args, **kwargs)
 
+        self.instructions:  QtCore.QThread = None
+
         self.setLayout(QtWidgets.QVBoxLayout())
 
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
@@ -50,7 +52,12 @@ class RoboInterface(QtWidgets.QWidget):
         self.servo2_spin.setRange(0, 180)
         self.servo3_spin.setRange(0, 180)
 
+        self.servo1_spin.valueChanged.connect(self.sendInstruction)
+        self.servo2_spin.valueChanged.connect(self.sendInstruction)
+        self.servo3_spin.valueChanged.connect(self.sendInstruction)
+
         self.base_controller = QtWidgets.QDial()
+        self.base_controller.valueChanged.connect(self.sendInstruction)
         self.dial_lbl = QtWidgets.QLabel(text="0")
 
         self.base_controller.valueChanged.connect(lambda val: self.dial_lbl.setText(str(val)))
@@ -85,7 +92,7 @@ class RoboInterface(QtWidgets.QWidget):
 
         self.servo_combo = QtWidgets.QComboBox()
         self.servo_combo.setEditable(False)
-        self.servo_combo.addItems(["Base controller", "Servo1", "Servo2", "Servo3"])
+        self.servo_combo.addItems(["Base controller", "Servo1", "Servo2", "Servo3", "delay"])
         self.servo_combo.currentTextChanged.connect(self.changeSpinRange)
 
         self.angle_spin = QtWidgets.QSpinBox()
@@ -113,30 +120,69 @@ class RoboInterface(QtWidgets.QWidget):
         elif text in ["Servo1", "Servo2", "Servo3"]:
             self.angle_spin.setRange(0, 180)
 
+        elif text == "delay":
+            self.angle_spin.setRange(1, 18000)
+
     def connectDevice(self):  # Todo: move this to instructions class
 
         com = f"COM{self.com_port.text()}"
         baud = int(self.baud_rate.currentText())
-        try:
-            self.serial = serial.Serial(com, baud, timeout=2)
 
-        except serial.serialutil.SerialException as e:
-            self.connection_status_lbl.setText(str(e))
+        if self.instructions:
+            self.instructions.requestInterruption()
+
+        self.instructions = Instructions(com, baud)
+        self.instructions.start()
+        self.instructions.connectionStatus.connect(self.connection_status_lbl.setText)
+
+    def sendInstruction(self, val):
+        if not self.instructions:
+            return
+        print(self.sender(), val)
+        self.instructions.setInstruction(val)
 
 
 class Instructions(QtCore.QThread):
-    completedInstruction = QtCore.pyqtSignal()
+    completedInstruction = QtCore.pyqtSignal(bool)
+    connectionStatus = QtCore.pyqtSignal(str)
 
-    def __init__(self, socket, *args, **kwargs):
+    def __init__(self, com, baud=9000, *args, **kwargs):
         super(Instructions, self).__init__(*args, **kwargs)
+        self.com = com
+        self.baud = baud
+        self.instruction = ""
+        self.serial_port = None
 
-        self.socket = socket
+        print(repr(com), baud, repr(baud))
 
     def run(self) -> None:
-        pass
+        print("STARTING INSTRUCTION....")
+        self.connectionStatus.emit("Connecting...")
+        try:
+            self.serial_port = serial.Serial(self.com, self.baud, timeout=2)
+            self.connectionStatus.emit("connection success")
 
-    def setInstructions(self, instruction):
-        pass
+        except serial.serialutil.SerialException as e:
+            self.connectionStatus.emit(str(e))
+            return
+
+        print(self.isInterruptionRequested())
+        while not self.isInterruptionRequested():  # run until interrupt request becomes False
+
+            if self.instruction:
+                self.serial_port.write(bytes(self.instruction, "utf-8"))
+
+            read = self.serial_port.readline()
+
+            if read and read.decode("utf-8") == "done":
+                self.completedInstruction.emit(True)
+
+            self.instruction = ""  # reset instruction else it will run the same instruction again and again
+
+        self.serial_port.close()
+
+    def setInstruction(self, instruction):
+        self.instruction = instruction
 
 
 class SequenceLabel(QtWidgets.QWidget):

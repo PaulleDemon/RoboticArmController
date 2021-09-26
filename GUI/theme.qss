@@ -1,0 +1,30 @@
+*{
+    font-size: 14px;
+    color: #ffffff;
+    background-color: #66686b;
+}
+
+QPushButton{
+    background-color: #5179bd;
+    padding: 10px;
+    border-radius: 2px;
+    border: 1px solid #979899;
+}
+
+QPushButton:hover{
+    background-color: #7791bd;
+}
+
+QSpinBox{
+    color: #ffffff;
+    padding: 5px;
+    border: 1px solid #a4a5a6;
+}
+
+QSpinBox:focus{
+    border: 2px solid #6c9beb;
+}
+
+QSpinBox:hover{
+    border: 2px solid #9eb9e6;
+}

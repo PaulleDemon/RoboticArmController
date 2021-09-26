@@ -2,23 +2,48 @@
     font-size: 14px;
     color: #ffffff;
     background-color: #66686b;
+    border-radius: 2px;
 }
 
 QPushButton{
     background-color: #5179bd;
     padding: 10px;
-    border-radius: 2px;
     border: 1px solid #979899;
 }
 
 QPushButton:hover{
+    padding: 5px;
     background-color: #7791bd;
+}
+
+QComboBox{
+  padding: 5px;
+  background-color: #5e5e5e;
+}
+
+QComboBox::drop-down {
+    border-radius: 1px;
+}
+
+QComboBox::down-arrow {
+    margin: 2px;
+    image: url(icons/downarrow.png);
+    width: 15px;
+    height: 15px;
+    right: 5px;
+}
+
+QComboBox QAbstractItemView {
+    outline: none;
+    background-color: #838485;
+    selection-background-color: #0e5eb3;
 }
 
 QSpinBox{
     color: #ffffff;
     padding: 5px;
     border: 1px solid #a4a5a6;
+    background-color: #5e5e5e;
 }
 
 QSpinBox:focus{
@@ -27,4 +52,63 @@ QSpinBox:focus{
 
 QSpinBox:hover{
     border: 2px solid #9eb9e6;
+}
+
+QSpinBox::up-button {
+    width: 10px;
+    height: 5px;
+    image: url(icons/uparrow.png);
+    padding: 2px;
+    margin: 2px;
+}
+
+QSpinBox::down-button {
+    width: 10px;
+    height: 5px;
+    image: url(icons/downarrow.png);
+    padding: 2px;
+    margin: 2px;
+}
+
+QScrollArea QWidget{
+    background-color: #575859;
+}
+
+QSplitter::handle{
+    /*background-color: #505052;*/
+    background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0,
+    stop:0 rgba(255, 255, 255, 0),
+    stop:0.407273 rgba(200, 200, 200, 255),
+    stop:0.4825 rgba(101, 104, 113, 235),
+    stop:0.6 rgba(255, 255, 255, 0));
+}
+
+#instruction > QFrame{
+    background-color: #6e7278;
+    border: 1px solid #a9aaab;
+}
+
+#instruction > QFrame > QLabel{
+    background-color: transparent;
+}
+
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+ QScrollArea QScrollBar::handle:vertical{
+     background-color: rgba(227, 222, 222, 120);         /* #605F5F; */
+     min-height: 5px;
+ }
+
+QScrollBar::add-line:vertical {
+      border: none;
+      background: none;
+      width: 0px;
+}
+
+QScrollBar::sub-line:vertical {
+      border: none;
+      background: none;
+      width: 0px;
 }

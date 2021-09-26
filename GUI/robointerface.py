@@ -9,9 +9,11 @@ class RoboInterface(QtWidgets.QWidget):
 
         self.instructions:  QtCore.QThread = None
 
+        self.setContentsMargins(0, 0, 0, 0)
         self.setLayout(QtWidgets.QVBoxLayout())
 
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self.splitter.setContentsMargins(0, 0, 0, 0)
 
         self.controller_frame = QtWidgets.QFrame()
         self.animate_frame = QtWidgets.QFrame()
@@ -111,7 +113,7 @@ class RoboInterface(QtWidgets.QWidget):
     def addkey(self):
         component = self.servo_combo.currentText()
         value = self.angle_spin.text()
-        self.scroll_layout.addWidget(SequenceLabel(f"{component}: {value}"))
+        self.scroll_layout.addWidget(SequenceLabel(f"{component}: {value}",  objectName="instruction"))
 
     def changeSpinRange(self, text):
 
@@ -191,15 +193,20 @@ class SequenceLabel(QtWidgets.QWidget):
     def __init__(self, text: str, *args, **kwargs):
         super(SequenceLabel, self).__init__(*args, **kwargs)
 
-        self.setLayout(QtWidgets.QHBoxLayout())
+        self.setMaximumHeight(100)
+        self.setLayout(QtWidgets.QVBoxLayout())
+
+        frame = QtWidgets.QFrame()
+        h_box = QtWidgets.QHBoxLayout(frame)
 
         self.sequence_lbl = QtWidgets.QLabel(text=text)
         self.delete_btn = QtWidgets.QPushButton(text="X")
         self.delete_btn.clicked.connect(self.deleteLater)
-        self.delete_btn.setMaximumWidth(25)
+        self.delete_btn.setMaximumWidth(35)
 
-        self.layout().addWidget(self.sequence_lbl)
-        self.layout().addWidget(self.delete_btn)
+        h_box.addWidget(self.sequence_lbl)
+        h_box.addWidget(self.delete_btn)
+        self.layout().addWidget(frame)
 
     def setText(self, text: str):
         self.sequence_lbl.setText(text)

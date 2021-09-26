@@ -7,7 +7,7 @@ class RoboInterface(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(RoboInterface, self).__init__(*args, **kwargs)
 
-        self.instructions:  QtCore.QThread = None
+        self.instructions: QtCore.QThread = None
 
         self.setContentsMargins(0, 0, 0, 0)
         self.setLayout(QtWidgets.QVBoxLayout())
@@ -102,7 +102,13 @@ class RoboInterface(QtWidgets.QWidget):
 
         self.start_stop_btn = QtWidgets.QPushButton(text='start/Stop')
 
+        self.save_btn = QtWidgets.QPushButton(text="Save", clicked=self.save)
+        self.load_btn = QtWidgets.QPushButton(text="load", clicked=self.load)
+
         self.animate_layout.addWidget(QtWidgets.QLabel("Animator", alignment=QtCore.Qt.AlignCenter), 0, 0, 1, 3)
+
+        self.animate_layout.addWidget(self.load_btn, 1, 0)
+        self.animate_layout.addWidget(self.save_btn, 1, 1)
         self.animate_layout.addWidget(self.start_stop_btn, 1, 2)
         self.animate_layout.addWidget(self.scroll_area, 2, 0, 1, 3)
 
@@ -113,7 +119,11 @@ class RoboInterface(QtWidgets.QWidget):
     def addkey(self):
         component = self.servo_combo.currentText()
         value = self.angle_spin.text()
-        self.scroll_layout.addWidget(SequenceLabel(f"{component}: {value}",  objectName="instruction"))
+
+        self.addInstruction(component, value)
+
+    def addInstruction(self, component, value):
+        self.scroll_layout.addWidget(SequenceLabel(f"{component}: {value}", objectName="instruction"))
 
     def changeSpinRange(self, text):
 
@@ -139,10 +149,58 @@ class RoboInterface(QtWidgets.QWidget):
         self.instructions.connectionStatus.connect(self.connection_status_lbl.setText)
 
     def sendInstruction(self, val):
+
         if not self.instructions:
             return
+
         print(self.sender(), val)
         self.instructions.setInstruction(val)
+
+    def getInstructions(self):
+        return [self.scroll_layout.itemAt(i).widget().getInstruction() for i in range(self.scroll_layout.count())]
+
+    def clear(self):
+
+        while self.scroll_layout.count():
+            child = self.scroll_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+    def save(self):
+
+        file_name, file_type = QtWidgets.QFileDialog.getSaveFileName(self, "Select save folder", filter=".txt")
+        print(file_name, file_type)
+
+        if not file_name:
+            return
+
+        instructions = self.getInstructions()
+
+        with open(f"{file_name}{file_type}", "w") as f_obj:
+            for ins in instructions:
+                f_obj.write(ins)
+                f_obj.write("\n")
+
+    def load(self):
+
+        file, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select open file", filter="txt(*.txt)")
+        print(file)
+
+        if not file:
+            return
+
+        self.clear()
+
+        with open(file, "r") as f_obj:
+            instructions = f_obj.readlines()
+
+        print(instructions)
+
+        for ins in instructions:
+            print(ins, ins.split(":"))
+            inst, value = ins.split(":")
+            print(ins, repr(value), repr(value.strip()))
+            self.addInstruction(inst, int(value.strip()))
 
 
 class Instructions(QtCore.QThread):
@@ -211,5 +269,5 @@ class SequenceLabel(QtWidgets.QWidget):
     def setText(self, text: str):
         self.sequence_lbl.setText(text)
 
-    def getText(self):
+    def getInstruction(self):
         return self.sequence_lbl.text()

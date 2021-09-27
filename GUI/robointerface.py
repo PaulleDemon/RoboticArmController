@@ -149,12 +149,29 @@ class RoboInterface(QtWidgets.QWidget):
         self.instructions.connectionStatus.connect(self.connection_status_lbl.setText)
 
     def sendInstruction(self, val):
+        # print(self.sender(), val)
 
         if not self.instructions:
             return
 
-        print(self.sender(), val)
-        self.instructions.setInstruction(val)
+        if self.sender() == self.servo1_spin:
+            ins = "S1"
+
+        elif self.sender() == self.servo2_spin:
+            ins = "S2"
+
+        elif self.sender() == self.servo3_spin:
+            ins = "S3"
+
+        elif self.sender() == self.base_controller:
+            ins = "base"
+
+        else:
+            print(self.sender(), val)
+
+        ins = f"{ins}:{val}"
+        print(ins, self.instructions)
+        self.instructions.setInstruction(ins)
 
     def getInstructions(self):
         return [self.scroll_layout.itemAt(i).widget().getInstruction() for i in range(self.scroll_layout.count())]
@@ -168,15 +185,14 @@ class RoboInterface(QtWidgets.QWidget):
 
     def save(self):
 
-        file_name, file_type = QtWidgets.QFileDialog.getSaveFileName(self, "Select save folder", filter=".txt")
-        print(file_name, file_type)
+        file_name, file_type = QtWidgets.QFileDialog.getSaveFileName(self, "Select save folder", filter="txt")
 
         if not file_name:
             return
 
         instructions = self.getInstructions()
 
-        with open(f"{file_name}{file_type}", "w") as f_obj:
+        with open(f"{file_name}.{file_type}", "w") as f_obj:
             for ins in instructions:
                 f_obj.write(ins)
                 f_obj.write("\n")
@@ -184,7 +200,6 @@ class RoboInterface(QtWidgets.QWidget):
     def load(self):
 
         file, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select open file", filter="txt(*.txt)")
-        print(file)
 
         if not file:
             return
@@ -194,12 +209,8 @@ class RoboInterface(QtWidgets.QWidget):
         with open(file, "r") as f_obj:
             instructions = f_obj.readlines()
 
-        print(instructions)
-
         for ins in instructions:
-            print(ins, ins.split(":"))
             inst, value = ins.split(":")
-            print(ins, repr(value), repr(value.strip()))
             self.addInstruction(inst, int(value.strip()))
 
 
@@ -229,16 +240,17 @@ class Instructions(QtCore.QThread):
 
         print(self.isInterruptionRequested())
         while not self.isInterruptionRequested():  # run until interrupt request becomes False
-
+            print(repr(self.instruction))
             if self.instruction:
+
                 self.serial_port.write(bytes(self.instruction, "utf-8"))
+                self.instruction = ""  # reset instruction else it will run the same instruction again and again
 
             read = self.serial_port.readline()
-
-            if read and read.decode("utf-8") == "done":
+            print("read: ", read)
+            if read and read == "Done":
                 self.completedInstruction.emit(True)
 
-            self.instruction = ""  # reset instruction else it will run the same instruction again and again
 
         self.serial_port.close()
 

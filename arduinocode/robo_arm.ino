@@ -15,8 +15,6 @@ Servo servo3;
 void setup(){
 
     Serial.begin(9600);
-    Serial.println("Starting...");
-
     Bluetooth.begin(38400);
 
     servo1.attach(8);

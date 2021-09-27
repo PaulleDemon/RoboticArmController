@@ -7,7 +7,11 @@ class RoboInterface(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(RoboInterface, self).__init__(*args, **kwargs)
 
-        self.instructions: QtCore.QThread = None
+        self.instexe: QtCore.QThread = None  # instruction executor object
+        self.current_instruction_index = 0
+        self.instructions = []
+        self.com = "COM1"
+        self.baud = 9600
 
         self.setContentsMargins(0, 0, 0, 0)
         self.setLayout(QtWidgets.QVBoxLayout())
@@ -54,12 +58,12 @@ class RoboInterface(QtWidgets.QWidget):
         self.servo2_spin.setRange(0, 180)
         self.servo3_spin.setRange(0, 180)
 
-        self.servo1_spin.valueChanged.connect(self.sendInstruction)
-        self.servo2_spin.valueChanged.connect(self.sendInstruction)
-        self.servo3_spin.valueChanged.connect(self.sendInstruction)
+        self.servo1_spin.valueChanged.connect(self.controllerInstruction)
+        self.servo2_spin.valueChanged.connect(self.controllerInstruction)
+        self.servo3_spin.valueChanged.connect(self.controllerInstruction)
 
         self.base_controller = QtWidgets.QDial()
-        self.base_controller.valueChanged.connect(self.sendInstruction)
+        self.base_controller.valueChanged.connect(self.controllerInstruction)
         self.dial_lbl = QtWidgets.QLabel(text="0")
 
         self.base_controller.valueChanged.connect(lambda val: self.dial_lbl.setText(str(val)))
@@ -100,7 +104,9 @@ class RoboInterface(QtWidgets.QWidget):
         self.angle_spin = QtWidgets.QSpinBox()
         self.add_btn = QtWidgets.QPushButton(text="Add", clicked=self.addkey)
 
-        self.start_stop_btn = QtWidgets.QPushButton(text='start/Stop')
+        self.start_stop_btn = QtWidgets.QPushButton(text='Start')
+        self.start_stop_btn.setCheckable(True)
+        self.start_stop_btn.toggled.connect(self.animatorInstruction)
 
         self.save_btn = QtWidgets.QPushButton(text="Save", clicked=self.save)
         self.load_btn = QtWidgets.QPushButton(text="load", clicked=self.load)
@@ -138,20 +144,22 @@ class RoboInterface(QtWidgets.QWidget):
 
     def connectDevice(self):
 
-        com = f"COM{self.com_port.text()}"
-        baud = int(self.baud_rate.currentText())
+        self.com = f"COM{self.com_port.text()}"
+        self.baud = int(self.baud_rate.currentText())
+        self.startExecutor()
 
-        if self.instructions:
-            self.instructions.requestInterruption()
+    def startExecutor(self):
 
-        self.instructions = Instructions(com, baud)
-        self.instructions.start()
-        self.instructions.connectionStatus.connect(self.connection_status_lbl.setText)
+        if self.instexe:
+            self.instexe.requestInterruption()
 
-    def sendInstruction(self, val):
-        # print(self.sender(), val)
+        self.instexe = InstructionsExecutor(self.com, self.baud)
+        self.instexe.start()
+        self.instexe.connectionStatus.connect(self.connection_status_lbl.setText)
 
-        if not self.instructions:
+    def controllerInstruction(self, val):
+
+        if not self.instexe:
             return
 
         if self.sender() == self.servo1_spin:
@@ -170,8 +178,52 @@ class RoboInterface(QtWidgets.QWidget):
             print(self.sender(), val)
 
         ins = f"{ins}:{val}"
-        print(ins, self.instructions)
-        self.instructions.setInstruction(ins)
+
+        self.instexe.setInstruction(ins)
+
+    def updateInstruction(self):
+
+        if self.current_instruction_index == len(self.instructions):
+            self.current_instruction_index = 0
+            return
+
+        inst, val = self.instructions[self.current_instruction_index].split(":")
+        ins = ""
+        if inst == "Servo1":
+            ins = "S1"
+
+        elif inst == "Servo2":
+            ins = "S2"
+
+        elif inst == "Servo3":
+            ins = "S3"
+
+        elif inst == "delay":
+            ins = "delay"
+
+        self.instexe.setInstruction(f"{ins}:{val.strip()}")
+        self.current_instruction_index += 1
+
+    def animatorInstruction(self, checked):
+
+        if not self.instexe:
+            return
+
+        if checked:
+            self.startExecutor()
+            self.controller_frame.setDisabled(True)
+            self.instructions = self.getInstructions()
+            self.start_stop_btn.setText("Stop")
+            self.instexe.completedInstruction.connect(self.updateInstruction)
+            self.updateInstruction()
+            print(self.instructions)
+
+        else:
+            self.instexe.requestInterruption()
+            self.controller_frame.setDisabled(False)
+            self.instexe.completedInstruction.disconnect(self.updateInstruction)
+            self.start_stop_btn.setText("Start")
+            self.current_instruction_index = 0
 
     def getInstructions(self):
         return [self.scroll_layout.itemAt(i).widget().getInstruction() for i in range(self.scroll_layout.count())]
@@ -214,12 +266,12 @@ class RoboInterface(QtWidgets.QWidget):
             self.addInstruction(inst, int(value.strip()))
 
 
-class Instructions(QtCore.QThread):
-    completedInstruction = QtCore.pyqtSignal(bool)
+class InstructionsExecutor(QtCore.QThread):
+    completedInstruction = QtCore.pyqtSignal(bool)  # sent when instruction execution is complete
     connectionStatus = QtCore.pyqtSignal(str)
 
     def __init__(self, com, baud=9000, *args, **kwargs):
-        super(Instructions, self).__init__(*args, **kwargs)
+        super(InstructionsExecutor, self).__init__(*args, **kwargs)
         self.com = com
         self.baud = baud
         self.instruction = ""
@@ -230,6 +282,7 @@ class Instructions(QtCore.QThread):
     def run(self) -> None:
         print("STARTING INSTRUCTION....")
         self.connectionStatus.emit("Connecting...")
+
         try:
             self.serial_port = serial.Serial(self.com, self.baud, timeout=2)
             self.connectionStatus.emit("connection success")
@@ -238,9 +291,16 @@ class Instructions(QtCore.QThread):
             self.connectionStatus.emit(str(e))
             return
 
-        print(self.isInterruptionRequested())
         while not self.isInterruptionRequested():  # run until interrupt request becomes False
-            print(repr(self.instruction))
+            print("Instruction", repr(self.instruction))
+
+            if "delay" in self.instruction:
+                ins, val = self.instruction.split(":")
+                self.msleep(int(val))
+                self.completedInstruction.emit(True)
+                continue
+
+            self.completedInstruction.emit(True)
             if self.instruction:
 
                 self.serial_port.write(bytes(self.instruction, "utf-8"))
@@ -250,7 +310,6 @@ class Instructions(QtCore.QThread):
             print("read: ", read)
             if read and read == "Done":
                 self.completedInstruction.emit(True)
-
 
         self.serial_port.close()
 

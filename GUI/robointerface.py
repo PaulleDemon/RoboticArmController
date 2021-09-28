@@ -303,13 +303,13 @@ class InstructionsExecutor(QtCore.QThread):
         print("STARTING INSTRUCTION....")
         self.connectionStatus.emit("Connecting...")
 
-        # try:
-        #     self.serial_port = serial.Serial(self.com, self.baud, timeout=2)
-        #     self.connectionStatus.emit("connection success")
-        #
-        # except serial.serialutil.SerialException as e:
-        #     self.connectionStatus.emit(str(e))
-        #     return
+        try:
+            self.serial_port = serial.Serial(self.com, self.baud, timeout=2)
+            self.connectionStatus.emit("connection success")
+
+        except serial.serialutil.SerialException as e:
+            self.connectionStatus.emit(str(e))
+            return
 
         while not self.isInterruptionRequested():  # run until interrupt request becomes False
             print("Instruction", repr(self.instruction))
@@ -319,19 +319,18 @@ class InstructionsExecutor(QtCore.QThread):
                 self.msleep(int(val))
                 self.completedInstruction.emit(True)
                 continue
-            self.sleep(1)
-            self.completedInstruction.emit(True)
-            # if self.instruction:
-            #
-            #     self.serial_port.write(bytes(self.instruction, "utf-8"))
-            #     self.instruction = ""  # reset instruction else it will run the same instruction again and again
-            #
-            # read = self.serial_port.readline()
-            # print("read: ", read)
-            # if read and read == "Done":
-            #     self.completedInstruction.emit(True)
 
-        # self.serial_port.close()
+            if self.instruction:
+
+                self.serial_port.write(bytes(self.instruction, "utf-8"))
+                self.instruction = ""  # reset instruction else it will run the same instruction again and again
+
+            read = self.serial_port.readline()
+            print("read: ", read)
+            if read and read == "Done":
+                self.completedInstruction.emit(True)
+
+        self.serial_port.close()
         self.connectionStatus.emit("Disconnected")
 
     def setInstruction(self, instruction):

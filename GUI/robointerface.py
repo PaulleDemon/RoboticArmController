@@ -8,7 +8,7 @@ class RoboInterface(QtWidgets.QWidget):
         super(RoboInterface, self).__init__(*args, **kwargs)
 
         self.instexe: QtCore.QThread = None  # instruction executor object
-        self.current_instruction_index = 0
+        self.current_instruction_index = -1
         self.instructions = []
         self.com = "COM1"
         self.baud = 9600
@@ -106,7 +106,7 @@ class RoboInterface(QtWidgets.QWidget):
 
         self.start_stop_btn = QtWidgets.QPushButton(text='Start')
         self.start_stop_btn.setCheckable(True)
-        self.start_stop_btn.toggled.connect(self.animatorInstruction)
+        self.start_stop_btn.clicked.connect(self.animatorInstruction)
 
         self.save_btn = QtWidgets.QPushButton(text="Save", clicked=self.save)
         self.load_btn = QtWidgets.QPushButton(text="load", clicked=self.load)
@@ -172,7 +172,7 @@ class RoboInterface(QtWidgets.QWidget):
             ins = "S3"
 
         elif self.sender() == self.base_controller:
-            ins = "base"
+            ins = "B1"
 
         else:
             print(self.sender(), val)
@@ -183,11 +183,19 @@ class RoboInterface(QtWidgets.QWidget):
 
     def updateInstruction(self):
 
+        if self.current_instruction_index >= 0:
+            self.instructions[self.current_instruction_index].setStyleSheet(self.styleSheet())
+
+        self.current_instruction_index += 1
+
         if self.current_instruction_index == len(self.instructions):
             self.current_instruction_index = 0
-            return
 
-        inst, val = self.instructions[self.current_instruction_index].split(":")
+        instruction_widget = self.instructions[self.current_instruction_index]
+        instruction_widget.setStyleSheet("QFrame{border: 2px solid #f5c518; color: #ede4e4;} QLabel{border:none; font-size: 16px;}")
+
+        inst, val = instruction_widget.getInstruction().split(":")
+
         ins = ""
         if inst == "Servo1":
             ins = "S1"
@@ -201,29 +209,41 @@ class RoboInterface(QtWidgets.QWidget):
         elif inst == "delay":
             ins = "delay"
 
+        elif inst == "Base controller":
+            ins = "B1"
+
         self.instexe.setInstruction(f"{ins}:{val.strip()}")
-        self.current_instruction_index += 1
 
     def animatorInstruction(self, checked):
 
-        if not self.instexe:
+        if not any(self.getInstructions()):
+            self.start_stop_btn.setChecked(not checked)
             return
 
         if checked:
             self.startExecutor()
+            self.scroll_area.widget().setDisabled(True)
+            self.add_btn.setDisabled(True)
+            self.load_btn.setDisabled(True)
             self.controller_frame.setDisabled(True)
-            self.instructions = self.getInstructions()
+            self.instructions = [self.scroll_layout.itemAt(i).widget() for i in range(self.scroll_layout.count())]
             self.start_stop_btn.setText("Stop")
             self.instexe.completedInstruction.connect(self.updateInstruction)
             self.updateInstruction()
-            print(self.instructions)
 
         else:
-            self.instexe.requestInterruption()
+
+            if self.instexe:
+                self.instexe.requestInterruption()
+
+            self.scroll_area.widget().setDisabled(False)
+            self.add_btn.setDisabled(False)
+            self.load_btn.setDisabled(False)
             self.controller_frame.setDisabled(False)
             self.instexe.completedInstruction.disconnect(self.updateInstruction)
             self.start_stop_btn.setText("Start")
-            self.current_instruction_index = 0
+            self.instructions[self.current_instruction_index].setStyleSheet(self.styleSheet())
+            self.current_instruction_index = -1
 
     def getInstructions(self):
         return [self.scroll_layout.itemAt(i).widget().getInstruction() for i in range(self.scroll_layout.count())]
@@ -283,13 +303,13 @@ class InstructionsExecutor(QtCore.QThread):
         print("STARTING INSTRUCTION....")
         self.connectionStatus.emit("Connecting...")
 
-        try:
-            self.serial_port = serial.Serial(self.com, self.baud, timeout=2)
-            self.connectionStatus.emit("connection success")
-
-        except serial.serialutil.SerialException as e:
-            self.connectionStatus.emit(str(e))
-            return
+        # try:
+        #     self.serial_port = serial.Serial(self.com, self.baud, timeout=2)
+        #     self.connectionStatus.emit("connection success")
+        #
+        # except serial.serialutil.SerialException as e:
+        #     self.connectionStatus.emit(str(e))
+        #     return
 
         while not self.isInterruptionRequested():  # run until interrupt request becomes False
             print("Instruction", repr(self.instruction))
@@ -299,19 +319,20 @@ class InstructionsExecutor(QtCore.QThread):
                 self.msleep(int(val))
                 self.completedInstruction.emit(True)
                 continue
-
+            self.sleep(1)
             self.completedInstruction.emit(True)
-            if self.instruction:
+            # if self.instruction:
+            #
+            #     self.serial_port.write(bytes(self.instruction, "utf-8"))
+            #     self.instruction = ""  # reset instruction else it will run the same instruction again and again
+            #
+            # read = self.serial_port.readline()
+            # print("read: ", read)
+            # if read and read == "Done":
+            #     self.completedInstruction.emit(True)
 
-                self.serial_port.write(bytes(self.instruction, "utf-8"))
-                self.instruction = ""  # reset instruction else it will run the same instruction again and again
-
-            read = self.serial_port.readline()
-            print("read: ", read)
-            if read and read == "Done":
-                self.completedInstruction.emit(True)
-
-        self.serial_port.close()
+        # self.serial_port.close()
+        self.connectionStatus.emit("Disconnected")
 
     def setInstruction(self, instruction):
         self.instruction = instruction

@@ -5,20 +5,38 @@
     border-radius: 2px;
 }
 
+*:disabled{
+    color: #ebebeb;
+    background-color: #878787;
+}
+
 QPushButton{
     background-color: #5179bd;
     padding: 10px;
     border: 1px solid #979899;
 }
 
+QPushButton:disabled{
+    color: #b8b8b8;
+    background-color: #7590bf;
+}
+
+QPushButton:checked{
+    background-color: #e81e1e;
+}
+
+QPushButton::checked::hover{
+    background-color: #d93434;
+}
+
 QPushButton:hover{
-    padding: 5px;
     background-color: #7791bd;
 }
 
 QComboBox{
   padding: 5px;
   background-color: #5e5e5e;
+  border: 1px solid #979899;
 }
 
 QComboBox::drop-down {
@@ -89,6 +107,8 @@ QSplitter::handle{
 }
 
 #instruction > QFrame > QLabel{
+    color: #d4cbcb;
+    font-weight: 10;
     background-color: transparent;
 }
 

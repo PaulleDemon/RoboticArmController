@@ -52,15 +52,12 @@ class RoboInterface(QtWidgets.QWidget):
 
         self.servo1_spin = QtWidgets.QSpinBox()
         self.servo2_spin = QtWidgets.QSpinBox()
-        self.servo3_spin = QtWidgets.QSpinBox()
 
         self.servo1_spin.setRange(0, 180)
         self.servo2_spin.setRange(0, 180)
-        self.servo3_spin.setRange(0, 180)
 
         self.servo1_spin.valueChanged.connect(self.controllerInstruction)
         self.servo2_spin.valueChanged.connect(self.controllerInstruction)
-        self.servo3_spin.valueChanged.connect(self.controllerInstruction)
 
         self.base_controller = QtWidgets.QDial()
         self.base_controller.valueChanged.connect(self.controllerInstruction)
@@ -80,7 +77,6 @@ class RoboInterface(QtWidgets.QWidget):
 
         self.controller_layout.addRow("Servo1", self.servo1_spin)
         self.controller_layout.addRow("Servo2", self.servo2_spin)
-        self.controller_layout.addRow("Servo3", self.servo3_spin)
         self.controller_layout.addWidget(QtWidgets.QLabel("Base controller", alignment=QtCore.Qt.AlignCenter))
         self.controller_layout.addRow(self.dial_lbl, self.base_controller)
 
@@ -98,7 +94,7 @@ class RoboInterface(QtWidgets.QWidget):
 
         self.servo_combo = QtWidgets.QComboBox()
         self.servo_combo.setEditable(False)
-        self.servo_combo.addItems(["Base controller", "Servo1", "Servo2", "Servo3", "delay"])
+        self.servo_combo.addItems(["Base controller", "Servo1", "Servo2", "delay"])
         self.servo_combo.currentTextChanged.connect(self.changeSpinRange)
 
         self.angle_spin = QtWidgets.QSpinBox()
@@ -136,7 +132,7 @@ class RoboInterface(QtWidgets.QWidget):
         if text == "Base controller":
             self.angle_spin.setRange(0, 360)
 
-        elif text in ["Servo1", "Servo2", "Servo3"]:
+        elif text in ["Servo1", "Servo2"]:
             self.angle_spin.setRange(0, 180)
 
         elif text == "delay":
@@ -167,9 +163,6 @@ class RoboInterface(QtWidgets.QWidget):
 
         elif self.sender() == self.servo2_spin:
             ins = "S2"
-
-        elif self.sender() == self.servo3_spin:
-            ins = "S3"
 
         elif self.sender() == self.base_controller:
             ins = "B1"
@@ -349,6 +342,7 @@ class SequenceLabel(QtWidgets.QWidget):
         h_box = QtWidgets.QHBoxLayout(frame)
 
         self.sequence_lbl = QtWidgets.QLabel(text=text)
+        self.sequence_lbl.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
         self.delete_btn = QtWidgets.QPushButton(text="X")
         self.delete_btn.clicked.connect(self.deleteLater)
         self.delete_btn.setMaximumWidth(35)

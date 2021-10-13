@@ -1,5 +1,5 @@
 *{
-    font-size: 14px;
+    font-size: 16px;
     color: #ffffff;
     background-color: #66686b;
     border-radius: 2px;
@@ -107,10 +107,13 @@ QSplitter::handle{
 }
 
 #instruction > QFrame > QLabel{
-    color: #d4cbcb;
+    color: #ffffff;
     font-weight: 10;
     background-color: transparent;
+    selection-color: #111a19;
+    selection-background-color: #55c9c4;
 }
+
 
 QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
     background: none;

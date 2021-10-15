@@ -18,8 +18,8 @@ void setup(){
     Bluetooth.begin(38400);
 
     servo1.attach(8);
-    servo2.attach(9);
-    servo3.attach(10);
+    servo2.attach(10);
+    servo3.attach(11); // Base
 
     Serial.println("Starting...");
 }
@@ -29,33 +29,36 @@ void loop(){
     if (Bluetooth.available()){
 
         String instruction;
-        int value, found=0, index = 0;
+        int value, index = 0;
 
         String s = Bluetooth.readString();
-        Serial.print("\nIN: ");
-        Serial.print(s);
+        Serial.print("\nIN: "+s);
+
 
         for(index; index<s.length(); index++){ /* splits the sting format to inst and value, eg: S1:123 -> s1 123*/
-            if (s[index] != ':' && found == 0)
-                instruction[index] = s[index];
-            
-            else{
-                value = s.substring(index+1, s.length()).toInt();
-                found = 1;
+            if (s[index] == ':')
                 break;
-            }
         }
+        instruction = s.substring(0, index);
+            
+        Serial.println("Instruction: "+instruction);
+ 
+        value = s.substring(index+1, s.length()).toInt();
+           
 
+        Serial.println("VALUE: "+(String)value+" instruction:"+instruction);
+        Serial.print(instruction.equals("S1"));
 
-        if (instruction.compareTo("S1")){
+        if (instruction.equals("S1")){
+            Serial.print("SAMPLE!");
             servo1.write(value);
         }
 
-        else if (instruction.compareTo("S2")){
+        else if (instruction.equals("S2")){
             servo2.write(value);
         }
         
-        else if (instruction.compareTo("S3")){
+        else if (instruction.equals("B1")){
             servo3.write(value);
         }
 

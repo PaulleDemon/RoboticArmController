@@ -53,8 +53,8 @@ class RoboInterface(QtWidgets.QWidget):
         self.servo1_spin = QtWidgets.QSpinBox()
         self.servo2_spin = QtWidgets.QSpinBox()
 
-        self.servo1_spin.setRange(0, 180)
-        self.servo2_spin.setRange(0, 180)
+        self.servo1_spin.setRange(-90, 90) # servo 1 range
+        self.servo2_spin.setRange(120, 180)
 
         self.servo1_spin.valueChanged.connect(self.controllerInstruction)
         self.servo2_spin.valueChanged.connect(self.controllerInstruction)
@@ -64,7 +64,7 @@ class RoboInterface(QtWidgets.QWidget):
         self.dial_lbl = QtWidgets.QLabel(text="0")
 
         self.base_controller.valueChanged.connect(lambda val: self.dial_lbl.setText(str(val)))
-        self.base_controller.setRange(0, 360)
+        self.base_controller.setRange(-180, 180)
 
         self.controller_layout.addWidget(QtWidgets.QLabel("Controller", alignment=QtCore.Qt.AlignCenter))
 
@@ -130,10 +130,13 @@ class RoboInterface(QtWidgets.QWidget):
     def changeSpinRange(self, text):
 
         if text == "Base controller":
-            self.angle_spin.setRange(0, 360)
+            self.angle_spin.setRange(-180, 180)
 
-        elif text in ["Servo1", "Servo2"]:
-            self.angle_spin.setRange(0, 180)
+        elif text == "Servo1":
+            self.angle_spin.setRange(-90, 90)
+
+        elif text == "Servo2":
+            self.angle_spin.setRange(120, 180)
 
         elif text == "delay":
             self.angle_spin.setRange(1, 18000)
@@ -195,9 +198,6 @@ class RoboInterface(QtWidgets.QWidget):
 
         elif inst == "Servo2":
             ins = "S2"
-
-        elif inst == "Servo3":
-            ins = "S3"
 
         elif inst == "delay":
             ins = "delay"

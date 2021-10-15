@@ -40,17 +40,13 @@ void loop(){
                 break;
         }
         instruction = s.substring(0, index);
-            
-        Serial.println("Instruction: "+instruction);
- 
         value = s.substring(index+1, s.length()).toInt();
            
-
         Serial.println("VALUE: "+(String)value+" instruction:"+instruction);
-        Serial.print(instruction.equals("S1"));
+
 
         if (instruction.equals("S1")){
-            Serial.print("SAMPLE!");
+
             servo1.write(value);
         }
 

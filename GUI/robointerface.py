@@ -154,7 +154,16 @@ class RoboInterface(QtWidgets.QWidget):
 
         self.instexe = InstructionsExecutor(self.com, self.baud)
         self.instexe.start()
-        self.instexe.connectionStatus.connect(self.connection_status_lbl.setText)
+        self.instexe.connectionStatus.connect(self.changeConnectionStatus)
+
+    def changeConnectionStatus(self, text: str):
+        self.connection_status_lbl.setText(text)
+
+        if text == "connection success":
+            self.start_connection_btn.setText("Stop connection")
+        
+        else:
+            self.start_connection_btn.setText("Start connection")
 
     def controllerInstruction(self, val):
 
@@ -214,7 +223,7 @@ class RoboInterface(QtWidgets.QWidget):
             return
 
         if checked:
-            self.startExecutor()
+            self.connectDevice()
             self.scroll_area.widget().setDisabled(True)
             self.add_btn.setDisabled(True)
             self.load_btn.setDisabled(True)
@@ -320,8 +329,9 @@ class InstructionsExecutor(QtCore.QThread):
 
             read = self.serial_port.readline()
             print("read: ", read)
-            if read and read == "Done":
+            if read and read == b"Done":
                 self.completedInstruction.emit(True)
+                print("Completed")
 
         self.serial_port.close()
         self.connectionStatus.emit("Disconnected")

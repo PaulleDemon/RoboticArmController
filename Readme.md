@@ -31,4 +31,4 @@ Click on start button in the animator window and click on stop if needed.
 
 You can save and load the instruction by clicking on the save and load buttons in the animator window.
 
-Watch the deom [here](demo/demo_video.m4v)
+Watch the demo [here](demo/demo_video.m4v)

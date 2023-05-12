@@ -32,3 +32,11 @@ Click on start button in the animator window and click on stop if needed.
 You can save and load the instruction by clicking on the save and load buttons in the animator window.
 
 Watch the demo [here](demo/demo_video.m4v)
+
+
+To run this in your system:
+
+run `git clone https://github.com/PaulleDemon/RoboticArmController`
+
+* install dependencies
+* Now run the main.py file in GUI folder
